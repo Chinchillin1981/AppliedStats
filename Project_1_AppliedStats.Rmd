@@ -64,7 +64,7 @@ Bitcoin_data$Low <- as.numeric(Bitcoin_data$Low)
 #Convert Volumne column to real numbers
 Bitcoin_data$Vol. <- gsub('K', 'e3', Bitcoin_data$Vol.)
 Bitcoin_data$Vol. <- gsub('M', 'e6', Bitcoin_data$Vol.)
-Bitcoin_data$Vol. <- format(as.numeric(Bitcoin_data$Vol.), scientific = FALSE, big.mark = ",")
+Bitcoin_data$Vol. <- format(as.numeric(Bitcoin_data$Vol.), scientific = FALSE))  #, big.mark = ",")
 ```
 
 ```{r, plot time series}
