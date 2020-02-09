@@ -1,0 +1,72 @@
+---
+title: "Project 1 Applied Stats"
+author: "Matt Chinchilla"
+date: "2/7/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, library}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(lubridate)
+```
+
+```{r, Set Working Directory}
+wd <- ('/Users/matthewchinchilla/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats')
+setwd(wd)
+```
+
+```{r, Import Bitcoin Data}
+myFile <- ('Bitcoin Historical Data - Investing.com.csv')
+Bitcoin_data <- read.csv(myFile)
+head(Bitcoin_data) %>% kable() %>% kable_styling(bootstrap_options = "striped")
+```
+
+#Raw Data Observations
+*Vol. Column has trailing "K" 
+*Change column has trailing % 
+
+```{r,explore Bitcoin Raw data}
+str(Bitcoin_data)#All data is class factor
+```
+
+```{r, Date Column Clean}
+
+#Update Column names
+Bitcoin_data <- Bitcoin_data %>% 
+  rename(
+    Change_Percent = Change..
+    )
+
+#Update Date column to date format and class
+Bitcoin_data$Date <- mdy(Bitcoin_data$Date)
+
+#Update price to number class
+Bitcoin_data$Price <- as.numeric(Bitcoin_data$Price)
+
+#Update Open to number class
+Bitcoin_data$Open <-  as.numeric(Bitcoin_data$Open)
+
+#Update High to number class
+Bitcoin_data$High <- as.numeric(Bitcoin_data$High)
+
+#update Low to number class
+Bitcoin_data$Low <- as.numeric(Bitcoin_data$Low)
+
+#Convert Volumne column to real numbers
+Bitcoin_data$Vol. <- gsub('K', 'e3', Bitcoin_data$Vol.)
+Bitcoin_data$Vol. <- gsub('M', 'e6', Bitcoin_data$Vol.)
+Bitcoin_data$Vol. <- format(as.numeric(Bitcoin_data$Vol.), scientific = FALSE, big.mark = ",")
+```
+
+```{r, plot time series}
+
+```
