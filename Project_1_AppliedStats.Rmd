@@ -17,11 +17,12 @@ library(tidyverse)
 library(knitr)
 library(kableExtra)
 library(lubridate)
+library(stringr)
 ```
 
 ```{r, Set Working Directory}
-wd <- ('/Users/matthewchinchilla/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats')
-setwd(wd)
+#wd <- ('/Users/matthewchinchilla/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats')
+#setwd(wd)
 ```
 
 ```{r, Import Bitcoin Data}
@@ -64,9 +65,40 @@ Bitcoin_data$Low <- as.numeric(Bitcoin_data$Low)
 #Convert Volumne column to real numbers
 Bitcoin_data$Vol. <- gsub('K', 'e3', Bitcoin_data$Vol.)
 Bitcoin_data$Vol. <- gsub('M', 'e6', Bitcoin_data$Vol.)
-Bitcoin_data$Vol. <- format(as.numeric(Bitcoin_data$Vol.), scientific = FALSE))  #, big.mark = ",")
+Bitcoin_data$Vol. <- format(as.numeric(Bitcoin_data$Vol.), scientific = FALSE) 
+                        
+#Trim spacing around values
+Bitcoin_data$Vol. <- trimws(Bitcoin_data$Vol.)
+
+#Convert to numbers
+Bitcoin_data$Vol. <- as.numeric(Bitcoin_data$Vol.)
 ```
 
-```{r, plot time series}
+```{r, clean bitcoin data count and view na values in data}
 
+#look for na values 
+colSums(is.na(Bitcoin_data))
+
+na <- subset(Bitcoin_data, is.na(Bitcoin_data$Vol.))
+na
+```
+
+```{r, remove na rows}
+Bitcoin_data <- na.omit(Bitcoin_data)
+
+#confirm na rows have been deleted
+na <- subset(Bitcoin_data, is.na(Bitcoin_data$Vol.))
+na
+```
+
+```{r, export clean bitcoin market data}
+#write.csv(Bitcoin_data, "/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats/Bitcoin_MarketData_Clean.csv", row.names = FALSE) 
+```
+
+
+```{r, plot time series}
+p <- ggplot(Bitcoin_data, aes(x=Date, y=Price)) +
+  geom_line() + 
+  xlab("")
+p
 ```
