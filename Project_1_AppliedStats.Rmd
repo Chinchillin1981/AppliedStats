@@ -18,6 +18,10 @@ library(knitr)
 library(kableExtra)
 library(lubridate)
 library(stringr)
+library(tseries)
+library(forecast)
+library(car)
+library(plotly)
 ```
 
 ```{r, Set Working Directory}
@@ -95,10 +99,40 @@ na
 #write.csv(Bitcoin_data, "/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats/Bitcoin_MarketData_Clean.csv", row.names = FALSE) 
 ```
 
+##Exploratory Data Ananlysis on MarketData
+```{r, read in clean market data}
+Bitcoin_md <- read.csv('/Users/matthewchinchilla/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats/Bitcoin_MarketData_Clean.csv', header = TRUE)
 
-```{r, plot time series}
-p <- ggplot(Bitcoin_data, aes(x=Date, y=Price)) +
+#Order data in ascending Date order
+Bitcoin_md <- Bitcoin_md[order(Date),] 
+
+Bitcoin_md$Date <- as.Date(Bitcoin_md$Date)
+```
+
+```{r, plot}
+p <- ggplot(Bitcoin_md, aes(x=Date, y=Price)) +
   geom_line() + 
-  xlab("")
+  xlab("Date") + ylab("Bitcoin Price") + ggtitle("Bitcoin Price Over Time")
 p
+```
+
+
+
+```{r}
+attach(Bitcoin_md)
+acf(Price)
+```
+
+
+
+```{r}
+pacf(Price)
+```
+
+```{r}
+durbinWatsonTest(lm(Price~1), max.lag = 10)
+```
+
+```{r}
+bitcoin_ts
 ```
