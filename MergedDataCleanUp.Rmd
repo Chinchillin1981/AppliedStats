@@ -1,0 +1,39 @@
+---
+title: "Project 1 merged data cleanup"
+author: "Matt Chinchilla"
+date: "2/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+BitcoinDataMergeV1 <- read_csv("BitcoinDataMergeV1.csv")
+```
+
+```{r}
+colSums(is.na(BitcoinDataMergeV1))
+```
+
+```{r}
+str(BitcoinDataMergeV1)
+```
+
+```{r, remove columns with multiple NA's}
+drops <- c("Transactions last 24h","Transactions avg. per hour","Bitcoins sent last 24h","Bitcoins sent avg. per hour")
+BitcoinDataMergeV2 <-  BitcoinDataMergeV1[ , !(names(BitcoinDataMergeV1) %in% drops)]
+head(BitcoinDataMergeV2)
+```
+
+```{r}
+colSums(is.na(BitcoinDataMergeV2))
+```
+```{r}
+rowsum(is.na())
