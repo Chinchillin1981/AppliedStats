@@ -1,0 +1,176 @@
+---
+title: "Project1_TimeSeriesAnalysis"
+author: "Matt Chinchilla"
+date: "2/11/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tseries)
+library(forecast)
+library(car)
+```
+
+
+```{r}
+BitcoinDataMergeV2 <- read.csv("BitcoinDataMergeV2", header = TRUE)
+```
+
+Add a date column per Project requirements
+```{r}
+BitcoinDataMergeV2$Time <- 1:nrow(BitcoinDataMergeV2)
+```
+
+Plot Bitcoin Price data over time
+```{r, plot}
+p <- ggplot(BitcoinDataMergeV2, aes(x=Time, y=Price)) +
+  geom_line() + 
+  xlab("Time") + ylab("Bitcoin Price") + ggtitle("Bitcoin Price Over Time")
+p
+```
+
+```{r}
+attach(BitcoinDataMergeV2)
+acf(Price)
+```
+
+```{r}
+pacf(Price)
+```
+
+```{r}
+durbinWatsonTest(lm(Price)~1, max.lag = 10)
+```
+
+```{r}
+bitcoin_ts <- ts(BitcoinDataMergeV2$Price, freq=365)
+```
+
+
+Decompose Time Series
+```{r}
+bitcoin_tsDecomp <- decompose(bitcoin_ts, type = 'multiplicative')
+plot(bitcoin_tsDecomp)
+```
+```{r}
+library(corrplot)
+library(purrr) #keep
+        
+#function to create corrolation heatmap
+correlator <- function(df){
+  df %>%
+    keep(is.numeric) %>%
+    tidyr::drop_na() %>%
+    cor %>%
+    corrplot(addCoef.col = "white", number.digits = 2,
+             number.cex = .5, method = "pie",
+             order = "hclust",
+             tl.srt = 45, tl.cex = .8)
+}
+
+correlator(BitcoinDataMergeV2)
+```
+
+Log Transform price data to compare
+```{r}
+BitcoinDataMergeV2$LogPrice <- log(Price)
+attach(BitcoinDataMergeV2)
+```
+Plot Log transformed Bitcoin Price data over time
+```{r, plot}
+p <- ggplot(BitcoinDataMergeV2, aes(x=Time, y=LogPrice)) +
+  geom_line() + 
+  xlab("Time") + ylab("Bitcoin Price") + ggtitle("Log transformed Bitcoin Price Over Time")
+p
+```
+
+```{r}
+acf(LogPrice)
+```
+
+```{r}
+pacf(LogPrice)
+```
+```{r}
+bitcoin_ts2 <- ts(LogPrice, freq=365)
+```
+
+Decompose Time Series
+```{r}
+bitcoin_tsDecomp2 <- decompose(bitcoin_ts2, type = 'multiplicative')
+plot(bitcoin_tsDecomp2)
+```
+
+Price Predictors
+```{r}
+plot(`Total BTC`,LogPrice,xlab="Total BTC")
+ols<-lm(LogPrice~ poly(`Total BTC`,degree = 3,raw = TRUE))
+abline(lm(LogPrice~`Total BTC`))
+lines(smooth.spline(`Total BTC`,predict(ols)), col = 'blue', lwd = 3)
+text(16000000,5,paste("Cor=",round(cor(LogPrice,`Total BTC`),2)))
+```
+
+```{r}
+summary(ols)
+```
+
+Price Predictors
+```{r}
+plot(Difficulty,LogPrice,xlab="Total BTC")
+ols2<-lm(LogPrice~ poly(Difficulty,degree = 2,raw = TRUE))
+abline(lm(LogPrice~Difficulty))
+lines(smooth.spline(Difficulty,predict(ols2)), col = 'blue', lwd = 3)
+text(800000000000,5,paste("Cor=",round(cor(LogPrice,Difficulty),2)))
+```
+
+```{r}
+summary(lm(LogPrice~Difficulty))
+```
+
+```{r}
+summary(ols2)
+```
+
+
+```{r}
+Bitcoin_AR1 <- arima(LogPrice, order=c(1,0,0))
+
+tsdisplay(residuals(Bitcoin_AR1),lag.max=5,main="AR(1) Resid. Diagnostics")
+```
+
+
+```{r}
+Bitcoin_AR2 <- arima(LogPrice, order=c(2,0,0))
+Bitcoin_AR2
+tsdisplay(residuals(Bitcoin_AR2),lag.max=15,main="AR(2) Resid. Diagnostics")
+```
+
+```{r}
+Bitcoin_AR3 <- arima(LogPrice, order=c(2,0,0))
+Bitcoin_AR3
+tsdisplay(residuals(Bitcoin_AR3),lag.max=15,main="AR(3) Resid. Diagnostics")
+```
+
+Predictors 
+```{r}
+
+```
+
+
+```{r}
+Bitcoin_AutoFit <- auto.arima(BitcoinDataMergeV2, stepwise = FALSE)
+Bitcoin_AutoFit
+```
+
+```{r}
+tsdisplay(residuals(Bit),lag.max=15,main="AR(2) Resid. Diagnostics")
+```
+
+```{r}
+plot(forecast(Bitcoin_AutoFit,h=90))
+points(1:length(bitcoin_ts),fitted(Bitcoin_AutoFit),type="l",col="blue")
+```

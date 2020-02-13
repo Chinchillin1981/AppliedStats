@@ -101,12 +101,12 @@ na
 
 ##Exploratory Data Ananlysis on MarketData
 ```{r, read in clean market data}
-Bitcoin_md <- read.csv('/Users/matthewchinchilla/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats/Bitcoin_MarketData_Clean.csv', header = TRUE)
+Bitcoin_md <- read.csv('Bitcoin_MarketData_Clean.csv', header = TRUE)
 
 #Order data in ascending Date order
 Bitcoin_md <- Bitcoin_md[order(Date),] 
 
-Bitcoin_md$Date <- as.Date(Bitcoin_md$Date)
+#Bitcoin_md$Date <- as.Date(Bitcoin_md$Date)
 ```
 
 ```{r, plot}

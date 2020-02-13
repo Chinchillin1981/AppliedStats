@@ -35,5 +35,35 @@ head(BitcoinDataMergeV2)
 ```{r}
 colSums(is.na(BitcoinDataMergeV2))
 ```
+
 ```{r}
-rowsum(is.na())
+BitcoinDataMergeV2 <- na.omit(BitcoinDataMergeV2)
+```
+
+```{r}
+#Convert Volumne column to real numbers
+BitcoinDataMergeV2$Vol. <- gsub('K', 'e3', BitcoinDataMergeV2$Vol.)
+BitcoinDataMergeV2$Vol. <- gsub('M', 'e6', BitcoinDataMergeV2$Vol.)
+BitcoinDataMergeV2$Vol. <- format(as.numeric(BitcoinDataMergeV2$Vol.), scientific = FALSE) 
+                        
+#Trim spacing around values
+BitcoinDataMergeV2$Vol. <- trimws(BitcoinDataMergeV2$Vol.)
+
+#Convert to numbers
+BitcoinDataMergeV2$Vol. <- as.numeric(BitcoinDataMergeV2$Vol.)
+```
+
+
+```{r}
+BitcoinDataMergeV2$`Change %` <- gsub("[,$%]","", BitcoinDataMergeV2$`Change %`)
+
+BitcoinDataMergeV2$`Change %` <- as.numeric(BitcoinDataMergeV2$`Change %`)
+```
+
+```{r}
+View(BitcoinDataMergeV2)
+```
+
+```{r}
+write.csv(BitcoinDataMergeV2, file = "BitcoinDataMergeV2.csv")
+```
