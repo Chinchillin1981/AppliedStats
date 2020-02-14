@@ -1,0 +1,261 @@
+---
+title: "Bitcoin Data Analysis"
+author: "Rajesh satluri"
+date: "2/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+# Cleaning up dataset
+```{r cars}
+
+
+library(knitr)
+library(pander)
+library(tidyverse)
+library(broom)
+library(scatterplot3d)
+library(DataCombine)
+library(corrplot)
+library(caret)
+library(kableExtra)
+library(lubridate)
+library(stringr)
+
+bc_data <- read.csv(file.choose(),header = TRUE)
+
+
+colnames(bc_data) # get column names
+
+
+summary(bc_data) # to find null values in each column
+
+#Update Column names
+bc_data <- bc_data %>% 
+  rename(
+    Days = Days,
+    Total_BTC = Total.BTC,
+    Market_Cap = Market.Cap,
+   # Transactions_last_24h = Transactions.last.24h,
+   # Transactions_avg_per_hour = Transactions.avg..per.hour,
+   # Bitcoins_sent_last_24h = Bitcoins.sent.last.24h,
+   # Bitcoins_sent_avg_per_hour = Bitcoins.sent.avg..per.hour,
+    Blocks_last_24h = Blocks.last.24h,
+    Blocks_avg_per_hour = Blocks.avg..per.hour,
+    Next_Difficulty = Next.Difficulty,
+    Network_Hashrate_Terahashs = Network.Hashrate.Terahashs,
+    Network_Hashrate_PetaFLOPS = Network.Hashrate.PetaFLOPS,
+    Volume = Vol.,
+    Change_Percentage = Change..,
+  )
+bc_data$Date <- as.Date(bc_data$Date)
+bc_data$Price <- as.numeric(bc_data$Price)
+#bc_data$Days <- 1:nrow(bc_data)
+
+ggplot(bc_data, aes(bc_data$Date, bc_data$Price)) + 
+  geom_point(color="firebrick") +
+  ggtitle('BitCoin Value vs. Time') +
+  theme(plot.title = element_text(size=20, face="bold", 
+    margin = margin(10, 0, 10, 0)))+
+  labs(x="Date", y="USD")+
+  theme(axis.text.x=element_text(angle=50, vjust=0.5)) +
+  theme(panel.background = element_rect(fill = 'grey90'))
+
+```
+
+#Summary of the Bitcoin Dataset
+
+##Correlation between variables
+```{r}
+cor <- cor(bc_data[,c(1,3:17)]) #selecthead()ing variables to include in correlation analysis
+
+colnames(cor) <- c("Days","Total_BTC", "Market_Cap","Count","Blocks_last_24h","Blocks_avg_per_hour","Difficulty","Next_Difficulty","Network_Hashrate_Terahashs","Network_Hashrate_PetaFLOPS","Price","Open","High","Low","Volume","Change_Percentage")
+rownames(cor) <-c("Days","Total_BTC", "Market_Cap","Count","Blocks_last_24h","Blocks_avg_per_hour","Difficulty","Next_Difficulty","Network_Hashrate_Terahashs","Network_Hashrate_PetaFLOPS","Price","Open","High","Low","Volume","Change_Percentage")
+corrplot(cor, method = "square",  tl.srt = 50, tl.col = "black", tl.cex = 0.6, title = "Correlation of Variables", mar=c(0,0,1,0))
+
+```
+
+The variables closest related to Price are Days,Total_BTC, hightly related to Market_Cap, Count(Total number of BitCoins),Difficulty, Next_Difficulty,Network_Hashrate_Terahashs,Network_Hashrate_PetaFLOPS,Price,Open,High and Low
+
+##Market Price vs. Market Cap
+```{R}
+ggplot(bc_data, aes(bc_data$Market_Cap, bc_data$Price)) + 
+  geom_point(color="firebrick") +
+  ggtitle('Bitcoin Market Capitalization vs. Bitcoin Market Price') +
+  theme(plot.title = element_text(size=19.5, face="bold", 
+    margin = margin(10, 0, 10, 0)))+
+  labs(x="Market Cap (USD)", y="Market Price (USD)")+
+  theme(axis.text.x=element_text(angle=50, vjust=0.5)) +
+  theme(panel.background = element_rect(fill = 'grey75'))+
+  stat_smooth(method = "lm",  formula = y ~ x, col = "yellow")
+
+```
+
+##Regression Model Summary
+```{R}
+lm_FitMarketCap<-lm(bc_data$Price~bc_data$Market_Cap)
+panderOptions("digits", 2)
+pander(lm_FitMarketCap, caption = "Linear Model: Market Price ~ Market Capitalization")
+R1=summary(lmfit1)$r.squared
+cat("R-Squared = ", R1)
+```
+
+As you can see above Market capital is significant to Bitcoin Market Price
+
+##Residuals Plots for Market Price vs Market Capitalization
+```{R}
+plot(lm_FitMarketCap, pch=20)
+
+```
+
+Residual Plot appears to be scatterd across the x-axis eventhough there is more concentration in the starting and middle
+
+##Difficulty vs. Market Price
+```{R}
+ggplot(bc_data, aes(bc_data$Difficulty, bc_data$Price)) + 
+  geom_point(color="firebrick") +
+  ggtitle('Difficulty vs. Market Price') +
+  theme(plot.title = element_text(size=19.5, face="bold", 
+    margin = margin(10, 0, 10, 0)))+
+  labs(x="Difficulty", y="Market Price (USD)")+
+  theme(axis.text.x=element_text(angle=90, vjust=0.5)) +
+  theme(panel.background = element_rect(fill = 'grey75'))+
+  stat_smooth(method = "lm",  formula = y ~ poly(x,2), col = "yellow")
+
+```
+
+##Regression Model Summary
+```{R}
+lm_FitDifficulty<-lm(bc_data$Price~poly(bc_data$Difficulty,2))
+panderOptions("digits", 2)
+pander(lm_FitDifficulty, caption = "Linear Model: Market Price ~ Difficulty squared")
+R2=summary(lm_FitDifficulty)$r.squared
+cat("R-Squared = ", R2)
+```
+
+Polynomial transformation fixed heteroscedasticity to some extent. And it looks much better as compared to log and no transformation.
+
+
+##Residuals
+```{R}
+plot(lm_FitDifficulty, pch=16, which=1)
+```
+
+
+##Hash Rate vs. Market Price
+```{R}
+ggplot(bc_data, aes(bc_data$Network_Hashrate_Terahashs, bc_data$Price)) + 
+  geom_point(color="firebrick") +
+  ggtitle('Bitcoin Hash Rate vs. Market Price') +
+  theme(plot.title = element_text(size=19.5, face="bold", 
+    margin = margin(10, 0, 10, 0)))+
+  labs(x="Tera Hash Rate", y="Market Price (USD)")+
+  theme(axis.text.x=element_text(angle=90, vjust=0.5)) +
+  theme(panel.background = element_rect(fill = 'grey75'))+
+  stat_smooth(method = "lm",  formula = y ~ poly(x,2), col = "yellow")
+
+```
+
+##Regression Model Details
+```{R}
+lm_FitTerahashrate<-lm(bc_data$Price~poly(bc_data$Network_Hashrate_Terahashs,2))
+panderOptions("digits", 2)
+pander(lm_FitTerahashrate, caption = "Linear Model: Market Price ~ Hash Rate")
+R5=summary(lm_FitTerahashrate)$r.squared
+cat("R-Squared = ", R5)
+```
+##Residuals
+```{R}
+plot(lm_FitTerahashrate, pch=16, which=1)
+```
+
+
+
+#What is the signifigance of these variables to the market price?
+
+##All variables
+```{R}
+lnFITALL <- lm(bc_data$Price~., bc_data)
+
+panderOptions("digits", 2)
+pander(lnFITALL, caption = "Linear Model: Market Price vs. All Variables")
+Rb1=summary(lnFITALL)$r.squared
+cat("R-Squared = ", Rb1)
+```
+
+##Residuals
+```{R}
+plot(lnFITALL, pch=16, which=1)
+```
+
+Most of the volume is located in the first half of x-region, but the trend line relatively flat.
+Days,Total_BTC, hightly related to Market_Cap, Count(Total number of BitCoins),Difficulty, Next_Difficulty,Network_Hashrate_Terahashs,Network_Hashrate_PetaFLOPS,Price,Open,High and Low
+##Highly Correlated Variables only
+```{R}
+ln_FITHighlyCorelated <- lm(bc_data$Price~bc_data$Market_Cap+bc_data$Network_Hashrate_Terahashs+bc_data$Network_Hashrate_PetaFLOPS+bc_data$Difficulty+bc_data$Total_BTC+bc_data$Days+bc_data$Days+bc_data$Open++bc_data$High+bc_data$Low, bc_data)
+
+#ln_FITHighlyCorelated <- lm(bc_data$Price~bc_data$Market_Cap+poly(bc_data$Network_Hashrate_Terahashs,2)+bc_data$Network_Hashrate_#PetaFLOPS+bc_data$Difficulty+bc_data$Total_BTC+bc_data$Days+bc_data$Days+bc_data$Open++bc_data$High+bc_data$Low, bc_data)
+
+
+panderOptions("digits", 2)
+pander(ln_FITHighlyCorelated, caption = "Linear Model: Market Price vs. Highly Correlated Variables")
+Rb2=summary(ln_FITHighlyCorelated)$r.squared
+cat("R-Squared = ", Rb2)
+```
+
+It appears that all of the highly correlated vairables to Market Price (Market Cap, Hash Rate, BTC Difficulty, Miners Revenue, and Estimated Transaction Volume USD) are significant.
+
+##Residuals
+```{R}
+plot(ln_FITHighlyCorelated, pch=16, which=1)
+```
+
+No dispersion and a flat line. Best model so far.
+
+
+#Train Model and Test
+
+##Creating the Training Subset and Test Subset
+```{R}
+set.seed(1)
+bc_traindata.index<-sample(1:nrow(bc_data),0.80*nrow(bc_data), replace=FALSE)
+bc_traindata <- bc_data[bc_traindata.index, ]
+bc_testdata  <- bc_data[-bc_traindata.index,]
+```
+
+##Training and Testing
+```{R}
+#Using the same model settings as above for lmfit7.
+
+#lm_FITTrain <- lm(Price~Market_Cap+Network_Hashrate_Terahashs+Difficulty+Total_BTC+Days, bc_traindata)
+lm_FITTrain = lm(Price~Market_Cap+Network_Hashrate_Terahashs+Network_Hashrate_PetaFLOPS+Difficulty+Total_BTC+Days+Days+Open+High+Low, bc_traindata)
+bc_testdata$predict1 <- predict(lm_FITTrain,bc_testdata)
+
+
+
+ggplot(bc_testdata, aes(bc_testdata$Days)) + 
+  
+  geom_point(aes(y=bc_testdata$Price),color="Firebrick") +
+  geom_line(aes(y=bc_testdata$predict1), color="Blue")+
+  ggtitle('BTC Prediction vs. Actuals') +
+  theme(plot.title = element_text(size=16, face="bold", 
+    margin = margin(10, 0, 10, 0)))+
+  labs(x="Days", y="Market Price (USD)")+
+  theme(axis.text.x=element_text(angle=90, vjust=0.5)) +
+  theme(panel.background = element_rect(fill = 'grey75'))+
+  labs(title = paste("BTC Linear Regression Model Prediction vs. Actuals",
+                     "\n\nAdj R2 = ",signif(summary(lm_FITTrain)$adj.r.squared, 5),
+                     " P =",signif(summary(lm_FITTrain)$coef[2,4], 2)))
+```
+
+Model does a very good job tracking the test set.
+More work to be done....
