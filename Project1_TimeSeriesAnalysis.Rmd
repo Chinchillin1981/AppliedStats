@@ -13,16 +13,18 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tseries)
 library(forecast)
 library(car)
+library(TSstudio)
 ```
 
 
 ```{r}
+setwd("/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats")
 BitcoinDataMergeV2 <- read.csv("BitcoinDataMergeV2", header = TRUE)
 ```
 
 Add a date column per Project requirements
 ```{r}
-BitcoinDataMergeV2$Time <- 1:nrow(BitcoinDataMergeV2)
+colnames(BitcoinDataMergeV2)[1] <- "Time"
 ```
 
 Plot Bitcoin Price data over time
@@ -41,21 +43,25 @@ acf(Price)
 ```{r}
 pacf(Price)
 ```
-
+Run durbin watson determin if serial corrolation exists 
 ```{r}
-durbinWatsonTest(lm(Price)~1, max.lag = 10)
+durbinWatsonTest(lm(Price~1), max.lag = 10)
 ```
 
+Convert to time series
 ```{r}
-bitcoin_ts <- ts(BitcoinDataMergeV2$Price, freq=365)
+bitcoinTS_Price <- ts(BitcoinDataMergeV2$Price, freq=365)
 ```
 
 
 Decompose Time Series
 ```{r}
-bitcoin_tsDecomp <- decompose(bitcoin_ts, type = 'multiplicative')
+bitcoin_tsDecomp <- decompose(bitcoinTS_Price, type = 'multiplicative')
 plot(bitcoin_tsDecomp)
 ```
+
+
+See what data has correlation 
 ```{r}
 library(corrplot)
 library(purrr) #keep
@@ -80,6 +86,8 @@ Log Transform price data to compare
 BitcoinDataMergeV2$LogPrice <- log(Price)
 attach(BitcoinDataMergeV2)
 ```
+
+
 Plot Log transformed Bitcoin Price data over time
 ```{r, plot}
 p <- ggplot(BitcoinDataMergeV2, aes(x=Time, y=LogPrice)) +
@@ -95,47 +103,122 @@ acf(LogPrice)
 ```{r}
 pacf(LogPrice)
 ```
+
+
 ```{r}
-bitcoin_ts2 <- ts(LogPrice, freq=365)
+bitcoinTS_LogPrice <- ts(LogPrice, freq=365)
 ```
 
 Decompose Time Series
 ```{r}
-bitcoin_tsDecomp2 <- decompose(bitcoin_ts2, type = 'multiplicative')
+bitcoin_tsDecomp2 <- decompose(bitcoinTS_LogPrice, type = 'multiplicative')
 plot(bitcoin_tsDecomp2)
 ```
 
-Price Predictors
+Analysis of "Total BTC" as a Price Predictor
 ```{r}
 plot(`Total BTC`,LogPrice,xlab="Total BTC")
-ols<-lm(LogPrice~ poly(`Total BTC`,degree = 3,raw = TRUE))
+Pred_TotalBTC<-lm(LogPrice~ poly(`Total BTC`,degree = 3,raw = TRUE))
+Pred_TotalBTC2<-lm(LogPrice~ poly(`Total BTC`,degree = 2,raw = TRUE))
 abline(lm(LogPrice~`Total BTC`))
-lines(smooth.spline(`Total BTC`,predict(ols)), col = 'blue', lwd = 3)
+lines(smooth.spline(`Total BTC`,predict(Pred_TotalBTC)), col = 'blue', lwd = 3)
 text(16000000,5,paste("Cor=",round(cor(LogPrice,`Total BTC`),2)))
 ```
-
+Polynomial model ^3
 ```{r}
-summary(ols)
+summary(Pred_TotalBTC)
 ```
 
-Price Predictors
+Polynomial model ^2
+```{r}
+summary(Pred_TotalBTC2)
+```
+
+Analysis of "Difficulty" as a Price Predictor
 ```{r}
 plot(Difficulty,LogPrice,xlab="Total BTC")
-ols2<-lm(LogPrice~ poly(Difficulty,degree = 2,raw = TRUE))
+Pred_Difficulty<-lm(LogPrice~ poly(Difficulty,degree = 2,raw = TRUE))
 abline(lm(LogPrice~Difficulty))
-lines(smooth.spline(Difficulty,predict(ols2)), col = 'blue', lwd = 3)
+lines(smooth.spline(Difficulty,predict(Pred_Difficulty)), col = 'blue', lwd = 3)
 text(800000000000,5,paste("Cor=",round(cor(LogPrice,Difficulty),2)))
 ```
-
+summary of Difficulty simple linear model
 ```{r}
-summary(lm(LogPrice~Difficulty))
+DifficultyLM <- lm(LogPrice~Difficulty)
+summary(DifficultyLM)
 ```
 
+Summary of Difficulty polynomial fit ^2
 ```{r}
-summary(ols2)
+summary(Pred_Difficulty)
+```
+
+Compare Difficulty simple model to polynomial model: P <.05 there is a significant difference between these models  we'll include the ploynomial set in the predictors
+```{r}
+anova(DifficultyLM,Pred_Difficulty)
 ```
 
 
+Analysis of "Count" as a Price Predictor
+Conculsion: Count and Total BTC are not statistically different but count gets a slightly better r2 so we will use count as a predictor in our model instead of Total BTC
+```{r}
+plot(Count,LogPrice,xlab="Total BTC")
+Pred_Count2<-lm(LogPrice~ poly(Count,degree = 2,raw = TRUE))
+Pred_Count3<-lm(LogPrice~ poly(Count,degree = 3,raw = TRUE))
+abline(lm(LogPrice~Count))
+lines(smooth.spline(Count,predict(Pred_Count)), col = 'blue', lwd = 3)
+text(450000,5,paste("Cor=",round(cor(LogPrice,Count),2)))
+```
+
+
+```{r}
+summary(Pred_Count2)
+```
+
+
+```{r}
+summary(Pred_Count3)
+```
+
+Create a matrix of predictors to use
+```{r}
+train_preds <- as.matrix(cbind(Count[1:1467],Count[1:1467]^2,Count[1:1467]^3,Difficulty,Difficulty[1:1467]^2))
+colnames(Preds)[2] <- c("Count^2")
+colnames(Preds)[3] <- c("Count^3")
+colnames(Preds)[5] <- c("Difficulty^2")
+
+
+```
+
+Split Time series
+```{r}
+Split_Data <- ts_split(ts.obj = bitcoinTS_LogPrice, sample.out = 730)
+train <- Split_Data$train
+test <- Split_Data$test
+
+length(train)
+length(test)
+```
+
+Split Predictors
+```{r}
+train_preds <- slice(Preds2,1:1467)
+test_preds <- slice(Preds2,1468:2197)
+
+#train_prds <- as.matrix(train_preds)
+
+length(train_preds)
+length(test_preds)
+```
+
+
+#Model
+```{r}
+Model1 <- auto.arima(train, xreg = train_preds, stepwise = FALSE)
+```
+
+
+#AR models
 ```{r}
 Bitcoin_AR1 <- arima(LogPrice, order=c(1,0,0))
 
@@ -153,11 +236,6 @@ tsdisplay(residuals(Bitcoin_AR2),lag.max=15,main="AR(2) Resid. Diagnostics")
 Bitcoin_AR3 <- arima(LogPrice, order=c(2,0,0))
 Bitcoin_AR3
 tsdisplay(residuals(Bitcoin_AR3),lag.max=15,main="AR(3) Resid. Diagnostics")
-```
-
-Predictors 
-```{r}
-
 ```
 
 
