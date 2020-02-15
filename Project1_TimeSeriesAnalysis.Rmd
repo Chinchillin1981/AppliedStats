@@ -18,8 +18,8 @@ library(TSstudio)
 
 
 ```{r}
-setwd("/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats")
-BitcoinDataMergeV2 <- read.csv("BitcoinDataMergeV2", header = TRUE)
+#setwd("/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats")
+BitcoinDataMergeV2 <- read.csv("BitcoinDataMergeV2.csv", header = TRUE)
 ```
 
 Add a date column per Project requirements
@@ -142,6 +142,7 @@ abline(lm(LogPrice~Difficulty))
 lines(smooth.spline(Difficulty,predict(Pred_Difficulty)), col = 'blue', lwd = 3)
 text(800000000000,5,paste("Cor=",round(cor(LogPrice,Difficulty),2)))
 ```
+
 summary of Difficulty simple linear model
 ```{r}
 DifficultyLM <- lm(LogPrice~Difficulty)
@@ -166,18 +167,30 @@ plot(Count,LogPrice,xlab="Total BTC")
 Pred_Count2<-lm(LogPrice~ poly(Count,degree = 2,raw = TRUE))
 Pred_Count3<-lm(LogPrice~ poly(Count,degree = 3,raw = TRUE))
 abline(lm(LogPrice~Count))
-lines(smooth.spline(Count,predict(Pred_Count)), col = 'blue', lwd = 3)
+lines(smooth.spline(Count,predict(Pred_Count3)), col = 'blue', lwd = 3)
 text(450000,5,paste("Cor=",round(cor(LogPrice,Count),2)))
 ```
 
 
-```{r}
-summary(Pred_Count2)
-```
-
 
 ```{r}
 summary(Pred_Count3)
+```
+
+Analysis of "MarketCap" as a Price Predictor
+```{r}
+plot(Market.Cap,LogPrice,xlab="Total BTC")
+Pred_MC1<-lm(LogPrice~Market.Cap)
+Pred_MC2<-lm(LogPrice~ poly(Market.Cap,degree = 2,raw = TRUE))
+Pred_MC3<-lm(LogPrice~ poly(Market.Cap,degree = 3,raw = TRUE))
+
+abline(lm(LogPrice~Market.Cap))
+lines(smooth.spline(Market.Cap,predict(Pred_MC3)), col = 'blue', lwd = 3)
+text(800000000000,5,paste("Cor=",round(cor(LogPrice,Market.Cap),2)))
+```
+
+```{r}
+summary(Pred_MC3)
 ```
 
 Create a matrix of predictors to use
@@ -200,6 +213,20 @@ length(train)
 length(test)
 ```
 
+```{r, like hw4}
+holdout.test<-window(ts(LogPrice),start=1468)
+train<-window(ts(LogPrice, end = 1467, frequency = 90))
+predictor1<-Count[1:1467]
+predictor2 <- Difficulty[1:1467]
+predictor3 <- Market.Cap[1:1467]
+
+Preds <- as.matrix(cbind(predictor1,predictor1^2,as.numeric(as.character(predictor1^3)),predictor2,predictor2^2))
+colnames(Preds)<-c("Count","Count2","Count3","Difficulty","Difficulty2")
+
+Preds <- read.csv("Preds.csv")
+Preds <- as.matrix(Preds)
+```
+
 Split Predictors
 ```{r}
 train_preds <- slice(Preds2,1:1467)
@@ -212,11 +239,44 @@ length(test_preds)
 ```
 
 
-#Model
+#Model 1 - no predictors
 ```{r}
-Model1 <- auto.arima(train, xreg = train_preds, stepwise = FALSE)
+BTC_Model1<-auto.arima(train,stepwise=FALSE)
+BTC_Model1
+tsdisplay(residuals(BTC_Model1),lag.max=15,main="BTC_Model1")
+plot(forecast(BTC_Model1,h=180))
+points(1:length(train),fitted(BTC_Model1),type="l",col="blue")
 ```
 
+#Model 2 - count predictor
+```{r}
+BTC_Model2<-auto.arima(train,xreg = predictor1, stepwise=FALSE)
+BTC_Model2
+
+tsdisplay(residuals(BTC_Model2),lag.max=15,main="BTC_Model2")
+
+plot(forecast(BTC_Model2,h=90, xreg= as.matrix(data.frame(predictor1 = Count[1468:2197])))) 
+#plot(forecast(ARIMA.with.Pred,h=5,xreg= as.matrix(data.frame(predictor = AvgTemp[36:40]))))
+points(1:length(train),fitted(BTC_Model2),type="l",col="blue")
+```
+
+#Model 3 difficulty predictor
+```{r}
+BTC_Model3<-auto.arima(train,xreg = predictor2, stepwise=FALSE)
+BTC_Model3
+tsdisplay(residuals(BTC_Model3),lag.max=15,main="BTC_Model1")
+plot(forecast(BTC_Model3, xreg = predictor2,h=90))
+points(1:length(train),fitted(BTC_Model3),type="l",col="blue")
+```
+
+#Model 4 market cap
+```{r}
+BTC_Model4<-auto.arima(train,xreg = predictor3, stepwise=FALSE)
+BTC_Model4
+tsdisplay(residuals(BTC_Model4),lag.max=15,main="BTC_Model1")
+plot(forecast(BTC_Model4,h=180))
+points(1:length(train),fitted(BTC_Model4),type="l",col="blue")
+```
 
 #AR models
 ```{r}
@@ -233,7 +293,7 @@ tsdisplay(residuals(Bitcoin_AR2),lag.max=15,main="AR(2) Resid. Diagnostics")
 ```
 
 ```{r}
-Bitcoin_AR3 <- arima(LogPrice, order=c(2,0,0))
+Bitcoin_AR3 <- arima(LogPrice, order=c(3,1,2))
 Bitcoin_AR3
 tsdisplay(residuals(Bitcoin_AR3),lag.max=15,main="AR(3) Resid. Diagnostics")
 ```
