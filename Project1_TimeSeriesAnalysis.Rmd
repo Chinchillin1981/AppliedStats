@@ -14,11 +14,12 @@ library(tseries)
 library(forecast)
 library(car)
 library(TSstudio)
+library(tidyverse)
 ```
 
 
 ```{r}
-setwd("/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats")
+#setwd("/Users/matt/Desktop/SMU/Applied Stats/ProjectDetails/AppliedStats")
 BitcoinDataMergeV2 <- read.csv("BitcoinDataMergeV2.csv", header = TRUE)
 attach(BitcoinDataMergeV2)
 ```

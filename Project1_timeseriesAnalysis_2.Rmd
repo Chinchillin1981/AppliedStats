@@ -1,0 +1,43 @@
+---
+title: "Untitled"
+author: "Matt Chinchilla"
+date: "2/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+BTC3yr_all <- ts(BitcoinDataMergeV2$Price, start = 1083, end = 2197,frequency = 1)
+
+plot(BTC3yr_all)
+```
+
+```{r}
+acf(BTC3yr_all)
+```
+
+```{r}
+pacf(BTC3yr_all)
+```
+
+```{r}
+BTC3yr_all_freq30 <- ts(BitcoinDataMergeV2$Price,start = 1083, end = 2197,frequency = 90)
+BTC3yr_all_Decomp <- decompose(BTC3yr_all_freq30, type = 'multiplicative')
+plot(BTC3yr_all_Decomp)
+```
+```{r}
+test_BTC3yr<-window(ts(BitcoinDataMergeV2$Price,start = 2168,end = 2197))
+train_BTC3yr<-window(ts(BitcoinDataMergeV2$Price,start = 1083,end = 2167))
+```
+
+```{r}
+BTC_Model1_nopred<-auto.arima(train_BTC3yr,stepwise=FALSE)
+BTC_Model1
+tsdisplay(residuals(BTC_Model1_nopred),lag.max=15,main="BTC_Model1 No Predictors")
+plot(forecast(BTC_Model1_nopred,h=30))
+points(1:length(train_BTC3yr),fitted(BTC_Model1_nopred),type="l",col="blue")
+points(1:2197,BitcoinDataMergeV2$Price,type = 'l')
+```
